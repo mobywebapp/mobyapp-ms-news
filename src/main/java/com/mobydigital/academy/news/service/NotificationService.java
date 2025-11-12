@@ -6,18 +6,16 @@ import com.mobydigital.academy.news.dto.NewsDto;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
-
+@Slf4j
 public class NotificationService {
 
   private final KafkaTemplate<Long, String> kafkaTemplate; // o <String,String> si cambiás a key String
@@ -29,7 +27,7 @@ public class NotificationService {
     message.put("id", newsId);
     message.put("item", dto);
     sendSocket(message);
-    System.out.println("Notificación de REMOVED enviada para newsId: " + newsId);
+      log.info("Notificación de REMOVED enviada para newsId: {}", newsId);
   }
 
   public void notifyUpsert(NewsDto dto, String entryId) throws JsonProcessingException {
@@ -46,7 +44,7 @@ public class NotificationService {
     kafkaTemplate.send("websocket", json);
   }
 
-  public String sendKafka(String message) throws JsonProcessingException{
+  public String sendKafka(String message){
     kafkaTemplate.send("websocket", message);
 
     return message;

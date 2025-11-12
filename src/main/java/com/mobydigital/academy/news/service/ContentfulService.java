@@ -8,6 +8,7 @@ import com.contentful.java.cma.CMAClient;
 import com.contentful.java.cma.model.CMAEntry;
 import com.mobydigital.academy.news.dto.Audience;
 import com.mobydigital.academy.news.dto.NewsDto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
@@ -21,25 +22,24 @@ import java.time.temporal.ChronoField;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
 
 @Service
+@Slf4j
 public class ContentfulService {
 
     private final CDAClient client;     //  Es para hacer operaciones ONLY READ en Contentful (CDA)
     private final CMAClient cmaClient;  // Es para hacer operaciones de gestión en Cntentful (Read-Write-Delete-Update) (CMA)
-    private static final Logger logger = Logger.getLogger(ContentfulService.class.getName());
 
     @Value("${contentful.spaceId}")
     private String spaceId;
-    private final String environmentId = "master";
-    private final String EXPIRATION_DATE_FIELD = "expiration_date";
-    private final String CONTENT_TYPE_NEWS = "news";
-    private final String CONTENT_TYPE_FIJAS= "novedadesFijas";
+    private static final String ENVIRONMENT_ID  = "master";
+    private static final String EXPIRATION_DATE_FIELD = "expiration_date";
+    private static final String CONTENT_TYPE_NEWS = "news";
+    private static final String CONTENT_TYPE_FIJAS= "novedadesFijas";
 
     // Comparación de fechas y prioridad
     private static final Comparator<NewsDto> PRIORITY_ORDER =
@@ -78,7 +78,7 @@ public class ContentfulService {
         String title = entry.getField("title");
         Boolean active = entry.getField("is_active");
         CDAAsset imageAsset = entry.getField("image");
-        String expirationDateString = entry.getField("expiration_date");
+        String expirationDateString = entry.getField(EXPIRATION_DATE_FIELD);
         Boolean isMobyWeb = entry.getField("isMobyWeb");
         Boolean isMobyApp = entry.getField("isMobyApp");
         String description = entry.getField("description");
@@ -127,7 +127,7 @@ public class ContentfulService {
     @Cacheable(value = {"newsFinal","news"}, key = "#audience") // cache separada por canal
     public List<NewsDto> buildFinalNews(Audience audience) {
         // 1) Traer y ordenar NEWS por prioridad
-        List<NewsDto> news = fetchNewsActiveNotExpired(audience);
+        List<NewsDto> news = new ArrayList<>(fetchNewsActiveNotExpired(audience));
         news.sort(PRIORITY_ORDER);
 
         // 2) Recortar a 8 con tu regla de “drop”
@@ -162,14 +162,14 @@ public class ContentfulService {
 
         return arr.entries().values().stream()
                 .map(CDAEntry.class::cast)
-                .map(this::mapEntryToDto)                                   // mapea todo
+                .map(this::mapEntryToDto)
                 .filter(NewsDto::getActive)                                 // solo activas
                 .filter(n -> n.getExpirationDate() == null
                         || n.getExpirationDate().isAfter(ZonedDateTime.now(ZoneOffset.UTC)))
                 .filter(n -> audience == Audience.MOBY_APP
                         ? Boolean.TRUE.equals(n.getIsMobyApp())
                         : Boolean.TRUE.equals(n.getIsMobyWeb()))            // FILTRO CLAVE
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<NewsDto> fetchAllExtras(Audience audience) {
@@ -178,13 +178,12 @@ public class ContentfulService {
                 .limit(8)
                 .all();
 
-        List<NewsDto> list = arr.entries().values().stream()
-                .map(e -> (CDAEntry) e)
+        List<NewsDto> list = new ArrayList<>(arr.entries().values().stream()
                 .map(this::mapEntryToDto)
                 .filter(n -> audience == Audience.MOBY_APP
                         ? Boolean.TRUE.equals(n.getIsMobyApp())
                         : Boolean.TRUE.equals(n.getIsMobyWeb()))            // MISMO FILTRO EN EXTRAS
-                .collect(Collectors.toList());
+                .toList());
 
         Collections.shuffle(list);
         return list;
@@ -197,7 +196,7 @@ public class ContentfulService {
             if (entry == null) return Optional.empty();
             return Optional.of(mapEntryToDto(entry));
         } catch (Exception e) {
-            logger.warning("No se pudo obtener la entrada CDA id=" + entryId + ": " + e.getMessage());
+            log.warn("No se pudo obtener la entrada CDA id={}: {}", entryId, e.getMessage());
             return Optional.empty();
         }
     }
@@ -205,7 +204,7 @@ public class ContentfulService {
     // Limpia la caché para mantener las novedades actualizadas
     @CacheEvict(value = {"news","newsFinal"}, allEntries = true)
     public void evictNewsCache() {
-        logger.info("Cache de novedades invalidada.");
+        log.info("Cache de novedades invalidada.");
     }
 
     // Elimina las novedades expiradas, se ejecuta cada un minunto para pruebas
@@ -213,45 +212,47 @@ public class ContentfulService {
     public void deleteExpiredNews() {
         final ZonedDateTime nowUtc = ZonedDateTime.now(ZoneId.of("UTC"));
         final String isoDate = nowUtc.format(FLEX_OFFSET);
-        logger.info("STARTING CLEANUP: Buscando noticias caducadas a " + isoDate);
+        log.info("STARTING CLEANUP: Buscando noticias caducadas a " + isoDate);
         try {
             Map<String, String> queryFilters = new HashMap<>();
             queryFilters.put("fields." + EXPIRATION_DATE_FIELD + "[lte]", isoDate);
             queryFilters.put("content_type", CONTENT_TYPE_NEWS);
 
             List<CMAEntry> expiredEntries = cmaClient.entries()
-                    .fetchAll(spaceId, environmentId, queryFilters)
+                    .fetchAll(spaceId, ENVIRONMENT_ID, queryFilters)
                     .getItems();
 
             if (expiredEntries.isEmpty()) {
-                logger.info("CLEANUP SUCCESS: No se encontraron noticias caducadas.");
+                log.info("CLEANUP SUCCESS: No se encontraron noticias caducadas.");
                 return;
             }
 
             for (CMAEntry entry : expiredEntries) {
+                processExpiredEntry(entry);
+            }
+            evictNewsCache();
+        } catch (Exception e) {
+            log.warn("FATAL CLEANUP ERROR: No se pudo consultar CMA. Error: {}", e.getMessage());
+        }
+    }
+
+    public void processExpiredEntry(CMAEntry entry) {
                 try {
                     String entryId = entry.getId();
                     String title = (String) entry.getField("title", "en-US"); // ajustar locale si corresponde
-                    logger.info("PROCESSING: Eliminando noticia caducada: " + title + " (" + entryId + ")");
+                    log.info("PROCESSING: Eliminando noticia caducada: {} ({})", title, entryId);
 
-                    if (entry.isPublished()) {
-                        logger.info("  -> Despublicando entrada...");
+                    if (Boolean.TRUE.equals(entry.isPublished())) {
+                        log.info("  -> Despublicando entrada...");
                         cmaClient.entries().unPublish(entry);
                     }
-                    logger.info("  -> Eliminando entrada...");
+                    log.info("  -> Eliminando entrada...");
                     cmaClient.entries().delete(entry);
 
-                    logger.info("SUCCESS: Noticia eliminada: " + title);
+                    log.info("SUCCESS: Noticia eliminada: {}", title);
 
                 } catch (Exception e) {
-                    logger.warning("ERROR PROCESSING ENTRY: " + entry.getId() + ": " + e.getMessage());
+                    log.warn("ERROR PROCESSING ENTRY: {}: {}", entry.getId(), e.getMessage());
                 }
-            }
-
-            evictNewsCache();
-
-        } catch (Exception e) {
-            logger.warning("FATAL CLEANUP ERROR: No se pudo consultar CMA. Error: " + e.getMessage());
-        }
     }
 }
