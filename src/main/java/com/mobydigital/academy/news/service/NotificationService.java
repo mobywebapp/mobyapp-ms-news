@@ -45,4 +45,11 @@ public class NotificationService {
     // con key Long, podés mandar null o una key real
     kafkaTemplate.send("websocket", json);
   }
+
+  public String sendKafka(String message) throws JsonProcessingException{
+    kafkaTemplate.send("websocket", message);
+
+    return message;
+  }
+
 }

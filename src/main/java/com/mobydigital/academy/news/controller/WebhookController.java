@@ -5,7 +5,9 @@ import com.mobydigital.academy.news.dto.NewsDto;
 import com.mobydigital.academy.news.service.ContentfulService;
 import com.mobydigital.academy.news.service.NotificationService;
 import com.contentful.java.cma.model.CMASnapshot;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
@@ -30,6 +32,11 @@ public class WebhookController {
     public WebhookController(ContentfulService contentfulService, NotificationService notificationService) {
         this.contentfulService = contentfulService;
         this.notificationService = notificationService;
+    }
+
+    @PostMapping("/kafka")
+    public ResponseEntity<String> mensajePrueba(@RequestBody String mensaje) throws JsonProcessingException{
+        return new ResponseEntity<>(notificationService.sendKafka(mensaje), HttpStatus.OK);
     }
 
     @PostMapping
