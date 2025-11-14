@@ -11,28 +11,33 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenApiConfig {
+
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("News moby API")
+                        .title("API de Noticias – Moby")
                         .description("""
-                            Provides access to MobyApp's news content retrieved from Contentful.
-                            This service filters, sorts, and caches active news by audience type (web/app),
-                            and performs scheduled cleanup tasks to remove expired entries automatically.
-                            """)
+                                Proporciona acceso al contenido de noticias de MobyApp obtenido desde Contentful.
+                                Este servicio filtra, ordena y cachea las noticias activas según la audiencia (web/app),
+                                además de ejecutar tareas programadas para eliminar automáticamente las entradas expiradas.
+                                """)
                         .version("1.0.0")
                         .contact(new Contact()
-                                .name("Moby Digital – News with Contentful")
+                                .name("Moby Digital – Servicio de Noticias con Contentful")
                                 .email("talento@mobydigital.com")
                                 .url("https://www.mobydigital.com/hablemos"))
-                        .license(new License().name("Apache 2.0").url("http://springdoc.org")))
+                        .license(new License()
+                                .name("Apache 2.0")
+                                .url("http://springdoc.org")))
                 .externalDocs(new ExternalDocumentation()
-                        .description("Swagger/OpenAPI Reference")
+                        .description("Referencia oficial de Swagger/OpenAPI")
                         .url("https://swagger.io/docs/"))
                 .addTagsItem(new Tag()
                         .name("News")
-                        .description("Operations for retrieving and maintaining MobyApp news content from Contentful, "
-                                + "including audience filtering, caching, and cleanup of expired entries."));
+                        .description("""
+                                Operaciones para obtener y gestionar el contenido de noticias de MobyApp desde Contentful,
+                                incluyendo filtrado por audiencia, manejo de caché y limpieza automática de noticias expiradas.
+                                """));
     }
 }

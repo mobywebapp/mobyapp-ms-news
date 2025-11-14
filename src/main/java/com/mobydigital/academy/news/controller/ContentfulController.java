@@ -23,21 +23,21 @@ import java.util.List;
 @AllArgsConstructor
 @Tag(
         name = "News",
-        description = "Operations for retrieving MobyApp news content fetched from Contentful, filtered by audience (web or app)."
+        description = "Operaciones para obtener el contenido de noticias de MobyApp desde Contentful, filtrado por audiencia (web o app)."
 )
 public class ContentfulController {
 
     private final ContentfulService service;
 
     @Operation(
-            summary = "Get all active news for the mobile app",
-            description = "Returns all news items targeted to the MobyApp audience. "
-                    + "Each news entry is fetched from Contentful, filtered by expiration date, "
-                    + "and sorted by priority before being cached for faster access.",
+            summary = "Obtener todas las noticias activas para la mobyapp",
+            description = "Devuelve todas las noticias dirigidas a la audiencia de la MobyApp. "
+                    + "Cada noticia se obtiene desde Contentful, se filtra por fecha de expiración, "
+                    + "y se ordena por prioridad antes de almacenarse en caché para un acceso más rápido.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "List of active news for the mobile app",
+                            description = "Listado de noticias activas para la aplicación de la app",
                             content = @Content(
                                     mediaType = "application/json",
                                     array = @ArraySchema(schema = @Schema(implementation = NewsDto.class))
@@ -45,7 +45,7 @@ public class ContentfulController {
                     ),
                     @ApiResponse(
                             responseCode = "204",
-                            description = "No news available for the web audience",
+                            description = "No hay noticias disponibles para la audiencia de la app",
                             content = @Content(
                                     mediaType = "application/json",
                                     schema = @Schema(example = "")
@@ -53,17 +53,17 @@ public class ContentfulController {
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "Internal server error during news retrieval",
+                            description = "Error interno al obtener las noticias",
                             content = @Content(
                                     mediaType = "application/json",
                                     examples = {
                                             @ExampleObject(
-                                                    name = "Unexpected error",
-                                                    value = "{\"error\": \"Error processing Contentful response\"}"
+                                                    name = "Error inesperado",
+                                                    value = "{\"error\": \"Error al procesar la respuesta de Contentful\"}"
                                             ),
                                             @ExampleObject(
-                                                    name = "Cache or connectivity issue",
-                                                    value = "{\"error\": \"Unable to connect to Contentful or Redis cache\"}"
+                                                    name = "Problema de caché o conectividad",
+                                                    value = "{\"error\": \"No se pudo conectar a Contentful o a la caché Redis\"}"
                                             )
                                     }
                             )
@@ -73,18 +73,19 @@ public class ContentfulController {
     @GetMapping("/news/app")
     public ResponseEntity<List<NewsDto>> getNewsApp() {
         List<NewsDto> news = service.buildFinalNews(Audience.MOBY_APP);
-        return news == null || news.isEmpty() ? ResponseEntity.noContent().build()
+        return (news == null || news.isEmpty())
+                ? ResponseEntity.noContent().build()
                 : ResponseEntity.ok(news);
     }
 
     @Operation(
-            summary = "Get all active news for the web platform",
-            description = "Returns all news items targeted to the Moby Web audience. "
-                    + "This endpoint is intended for frontend web applications that display Contentful content.",
+            summary = "Obtener todas las noticias activas para la plataforma web",
+            description = "Devuelve todas las noticias dirigidas a la audiencia de Moby Web. "
+                    + "Este endpoint está destinado a las aplicaciones frontend web que consumen contenido de Contentful.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "List of active news for the web platform",
+                            description = "Listado de noticias activas para la plataforma web",
                             content = @Content(
                                     mediaType = "application/json",
                                     array = @ArraySchema(schema = @Schema(implementation = NewsDto.class))
@@ -92,25 +93,25 @@ public class ContentfulController {
                     ),
                     @ApiResponse(
                             responseCode = "204",
-                            description = "No news available for the web audience",
+                            description = "No hay noticias disponibles para la audiencia web",
                             content = @Content(
-                            mediaType = "application/json",
+                                    mediaType = "application/json",
                                     schema = @Schema(example = "")
-                    )
+                            )
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "Internal server error during news retrieval",
+                            description = "Error interno al obtener las noticias",
                             content = @Content(
                                     mediaType = "application/json",
                                     examples = {
                                             @ExampleObject(
-                                                    name = "Unexpected error",
-                                                    value = "{\"error\": \"Error processing Contentful response\"}"
+                                                    name = "Error inesperado",
+                                                    value = "{\"error\": \"Error al procesar la respuesta de Contentful\"}"
                                             ),
                                             @ExampleObject(
-                                                    name = "Cache or connectivity issue",
-                                                    value = "{\"error\": \"Unable to connect to Contentful or Redis cache\"}"
+                                                    name = "Problema de caché o conectividad",
+                                                    value = "{\"error\": \"No se pudo conectar a Contentful o a la caché Redis\"}"
                                             )
                                     }
                             )
@@ -120,7 +121,8 @@ public class ContentfulController {
     @GetMapping("/news/web")
     public ResponseEntity<List<NewsDto>> getNewsWeb() {
         List<NewsDto> news = service.buildFinalNews(Audience.MOBY_WEB);
-        return news == null || news.isEmpty() ? ResponseEntity.noContent().build()
+        return (news == null || news.isEmpty())
+                ? ResponseEntity.noContent().build()
                 : ResponseEntity.ok(news);
     }
 }
