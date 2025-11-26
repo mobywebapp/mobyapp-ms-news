@@ -10,7 +10,7 @@ pipelines:
           script: 
             - echo "Sincronizando microservicio news con Github"
             
-            - git config --global user.email "ci@mobyapp.com"
+            - git config --global user.email "moby@mobyapp.com"
             - git config --global user.name "MobyApp CI"
             
             - git status
