@@ -41,11 +41,11 @@ public class NotificationService {
   private void sendSocket(Map<String, Object> message) throws JsonProcessingException {
     String json = objectMapper.writeValueAsString(message);
     // con key Long, podés mandar null o una key real
-    kafkaTemplate.send("websocket", json);
+    kafkaTemplate.send("news", json);
   }
 
   public String sendKafka(String message){
-    kafkaTemplate.send("websocket", message);
+    kafkaTemplate.send("news", message);
 
     return message;
   }
