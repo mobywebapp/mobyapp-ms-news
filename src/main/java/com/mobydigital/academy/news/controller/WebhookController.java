@@ -16,7 +16,7 @@ import java.util.Optional;
 
 @Hidden
 @RestController
-@RequestMapping("/api/contentful/webhook")
+@RequestMapping("/contentful/webhook")
 @Slf4j
 @AllArgsConstructor
 public class WebhookController {
