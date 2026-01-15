@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/contentful")
+@RequestMapping("/contentful")
 @AllArgsConstructor
 @Tag(
         name = "News",
