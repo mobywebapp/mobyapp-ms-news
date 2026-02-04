@@ -16,7 +16,8 @@ public class CorsConfig implements WebMvcConfigurer {
                         "http://localhost:3000",
                         "https://frontendsite-ten.vercel.app",
                         "https://frontendsite-roan.vercel.app",
-                        "https://mobydigital.com"
+                        "https://mobydigital.com",
+                        "https://www.mobydigital.com"
                 )
                 .allowedMethods("GET")
                 .allowedHeaders("*")
